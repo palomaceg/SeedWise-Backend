@@ -1,0 +1,20 @@
+
+require('dotenv').config();
+const express = require('express')
+const app = express()
+const PORT = process.env.PORT;
+const cors = require('cors')
+const { dbConnection } = require('./config/config');
+
+
+dbConnection();
+
+//MIDDLEWARE
+app.use(express.json());
+app.use(cors());
+
+
+//SERVIDOR
+app.listen(PORT, () => {
+    console.log(`Servidor arriba en http://localhost:${PORT}`)
+});
