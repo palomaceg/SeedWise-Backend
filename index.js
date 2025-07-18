@@ -15,6 +15,7 @@ app.use(cors());
 
 //ENDPOINTS
 app.use('/user', require('./routes/users'))
+app.use('/startup', require('./routes/startup'))
 
 
 //SERVIDOR
