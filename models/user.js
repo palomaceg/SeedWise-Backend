@@ -38,7 +38,9 @@ const UserSchema = new mongoose.Schema(
         confirmed: {
         type: Boolean,
         default: false,
-        }, },
+        },
+        token: [],
+         },
         {
             timestamps: true,
             collection: "user",
