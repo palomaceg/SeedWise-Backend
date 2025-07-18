@@ -26,6 +26,7 @@ const moduleSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "module",
   }
 );
 

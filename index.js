@@ -4,10 +4,16 @@ const app = express();
 const PORT = process.env.PORT;
 const cors = require("cors");
 const { dbConnection } = require("./config/config");
+
 dbConnection();
+
 //MIDDLEWARE
 app.use(express.json());
 app.use(cors());
+
+//ENDPOINTS
+app.use("/module", require("./routes/moduleRoutes"));
+
 //SERVIDOR
 app.listen(PORT, () => {
   console.log(`Servidor arriba en http://localhost:${PORT}`);
