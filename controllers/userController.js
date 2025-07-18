@@ -48,7 +48,53 @@ const userController = {
         console.error(error);
         res.status(500).send('Error en el login');
       }
+    },
+      async logout(req, res) {
+        try {
+          if(!req.user) {
+            return res.status(401).send('No autorizado');
+          }
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) {
+            return res.status(400).send('Token no proporcionado')
+          }
+          await User.findByIdAndUpdate(req.user._id, {$pull: { token: token }}, {new: true});
+          res.send('Desconectad@ con éxito.')
+      } catch (error){
+          console.error(error)
+          res.status(500).send ('Ha habido un problema al desconectar al usuari@')
+      }
+    },
+    async getById (req,res) {
+      try {
+        const user = await User.findById(req.params._id);
+        res.status(200).send(user)
+      } catch (error) {
+        console.error(error)
+        res.status(500).send('Ha habido un error al buscar al usuari@')
+      }
+    }, 
+    async updateUser (req, res) {
+      try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        const payload = jwt.verify(token, JWT_SECRET);
+        const user = await User.findByIdAndUpdate(req.body, payload._id);
+        res.status(200).send(user)
+      } catch (error) {
+        console.error(error)
+        res.status(500).send('No se ha podido modificar el usuario')
+      }
+    },
+    async getByEmail(req, res) {
+    try {
+      const regex = new RegExp(req.params.email, "i");
+      const user = await User.find({ email: regex });
+      res.send(user);
+    } catch (error) {
+      console.error("Error en getByName modules:", error);
+      res.status(500).send(error);
     }
+  },
 }
 
 module.exports = userController
