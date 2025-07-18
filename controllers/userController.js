@@ -95,6 +95,18 @@ const userController = {
       res.status(500).send(error);
     }
   },
+  async delete (req, res) {
+    try {
+      const deletedUser = await User.findByIdAndDelete(req.params._id);
+      if (!deletedUser) {
+        return res.status(404).send({ message: 'Usuari@ no encontrado para eliminar.' });
+      }
+      res.status(200).send({ message: 'Usuari@ eliminado correctamente.' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({ message: 'Error al eliminar el usuari@.' });
+    }
+  },
 }
 
 module.exports = userController

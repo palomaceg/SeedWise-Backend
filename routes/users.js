@@ -10,5 +10,6 @@ router.get('/:_id', userController.getById);
 router.get('/busqueda/:email', userController.getByEmail);
 router.put('/edit', authentication, userController.updateUser);
 router.delete('/logout', authentication, userController.logout);
+router.delete('/delete/:_id', authentication, userController.delete);
 
 module.exports = router;
