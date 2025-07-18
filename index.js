@@ -12,11 +12,12 @@ app.use(express.json());
 app.use(cors());
 
 //ENDPOINTS
-app.use('/user', require('./routes/users'))
-app.use('/startup', require('./routes/startup'))
+app.use('/user', require('./routes/users'));
+app.use('/startup', require('./routes/startup'));
 app.use("/module", require("./routes/moduleRoutes"));
 app.use("/session", require("./routes/sessionRoutes"));
-app.use('/trainers', require('./routes/trainer'))
+app.use('/trainers', require('./routes/trainer'));
+app.use('/mentors', require('./routes/mentoring'));
 
 //SERVIDOR
 app.listen(PORT, () => {

@@ -1,6 +1,4 @@
-
 const Trainer = require("../models/trainer")
-
 
 const trainerController = {
     async getAll(req, res) {
