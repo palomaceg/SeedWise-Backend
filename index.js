@@ -12,6 +12,7 @@ app.use(express.json());
 app.use(cors());
 
 //ENDPOINTS
+app.use("/user", require("./routes/users"));
 app.use("/module", require("./routes/moduleRoutes"));
 app.use("/session", require("./routes/sessionRoutes"));
 
