@@ -16,6 +16,7 @@ app.use('/user', require('./routes/users'))
 app.use('/startup', require('./routes/startup'))
 app.use("/module", require("./routes/moduleRoutes"));
 app.use("/session", require("./routes/sessionRoutes"));
+app.use('/trainers', require('./routes/trainer'))
 
 //SERVIDOR
 app.listen(PORT, () => {
