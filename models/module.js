@@ -4,15 +4,15 @@ const moduleSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      require: [true, "Por favor introduce un título para el módulo"],
+      required: [true, "Por favor introduce un título para el módulo"],
     },
     initialDate: {
       type: Date,
-      require: [true, "Por favor introduce una fecha de inicio"],
+      required: [true, "Por favor introduce una fecha de inicio"],
     },
     finalDate: {
       type: Date,
-      require: [true, "Por favor introduce una fecha de término"],
+      required: [true, "Por favor introduce una fecha de término"],
     },
     session: [
       {

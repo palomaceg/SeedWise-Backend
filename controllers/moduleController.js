@@ -1,4 +1,5 @@
 const Module = require("../models/module");
+const Session = require("../models/session");
 
 const ModuleController = {
   async create(req, res) {
@@ -40,12 +41,13 @@ const ModuleController = {
     }
   },
 
-  async getByName(req, res) {
+  async getByTitle(req, res) {
     try {
       const regex = new RegExp(req.params.name, "i");
-      const module = await Module.find({ name: regex });
+      const module = await Module.find({ title: regex });
       res.send(module);
     } catch (error) {
+      console.error("❌ Error en getByName modules:", error);
       res.status(500).send(error);
     }
   },
@@ -58,6 +60,7 @@ const ModuleController = {
       });
       res.status(200).send(module);
     } catch (error) {
+      console.error("❌ Error en getAll modules:", error);
       res.status(500).send({
         message: "Ha habido un problema al traer la información de los módulos",
       });
