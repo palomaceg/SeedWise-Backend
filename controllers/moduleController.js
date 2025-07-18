@@ -27,6 +27,7 @@ const ModuleController = {
       if (!deleted) return res.status(404).send({ msg: "Módulo no encontrado" });
       res.send("Módulo actualizado con éxito");
     } catch (error) {
+      console.error("❌ Error delete modules:", error);
       res.status(500).send(error);
     }
   },
@@ -37,6 +38,7 @@ const ModuleController = {
       if (!module) return res.status(404).send({ msg: "Módulo no encontrado" });
       res.send(module);
     } catch (error) {
+      console.error("❌ Error en getById modules:", error);
       res.status(500).send(error);
     }
   },
