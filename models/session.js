@@ -10,7 +10,7 @@ const sessionSchema = new mongoose.Schema(
       type: Date,
       required: [true, "Por favor introduce una fecha de la sesión"],
     },
-    instructor: {
+    trainer: {
       type: String,
     },
     position: {
@@ -19,7 +19,7 @@ const sessionSchema = new mongoose.Schema(
     company: {
       type: String,
     },
-    module: {
+    module_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Module",
     },

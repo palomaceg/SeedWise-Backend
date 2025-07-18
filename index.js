@@ -13,6 +13,7 @@ app.use(cors());
 
 //ENDPOINTS
 app.use("/module", require("./routes/moduleRoutes"));
+app.use("/session", require("./routes/sessionRoutes"));
 
 //SERVIDOR
 app.listen(PORT, () => {

@@ -7,6 +7,7 @@ const ModuleController = {
       const module = await Module.create(req.body);
       res.status(201).send({ msg: "módulo creado con éxito", module });
     } catch (error) {
+      console.error("❌ Error al crear modulo:", error);
       res.status(500).send(error);
     }
   },
@@ -17,6 +18,7 @@ const ModuleController = {
       if (!updated) return res.status(404).send({ msg: "Módulo no encontrado" });
       res.send("Módulo actualizado con éxito");
     } catch (error) {
+      console.error("❌ Error al actualizar el modulo:", error);
       res.status(500).send(error);
     }
   },
