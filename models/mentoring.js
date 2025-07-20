@@ -45,7 +45,7 @@ const MentoringSchema = new mongoose.Schema (
          },
         {
             timestamps: true,
-            collection: "mentor",
+            collection: "mentorship",
         }
 )
 

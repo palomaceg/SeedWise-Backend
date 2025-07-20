@@ -25,8 +25,8 @@ const startupController = {
     },
     async getByName(req, res) {
         try {
-          const regex = new RegExp(req.params.name, "i");
-          const startup = await Startup.find({ name: regex });
+          const regex = new RegExp(req.params.company, "i");
+          const startup = await Startup.find({ company: regex });
           res.send(startup);
         } catch (error) {
           console.error("Error en getByName modules:", error);

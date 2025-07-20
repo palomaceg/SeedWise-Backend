@@ -26,8 +26,8 @@ const SessionController = {
 
   async getByTrainer(req, res) {
     try {
-      const regex = new RegExp(req.params.trainer, "i");
-      const session = await Session.find({ trainer: regex });
+      const regex = new RegExp(req.params.name, "i");
+      const session = await Session.find({ name: regex });
       res.send(session);
     } catch (error) {
       console.error("❌ Error en traer por formador:", error);
