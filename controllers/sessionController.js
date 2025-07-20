@@ -23,7 +23,18 @@ const SessionController = {
       });
     }
   },
-
+  async getById (req,res) {
+            try {
+              const session = await Session.findById(req.params.id);
+              if (!session) {
+              return res.status(404).send({ msg: 'Sesión no encontrada con ese ID' });
+              }
+              res.status(200).send(session)
+            } catch (error) {
+              console.error(error)
+              res.status(500).send('Ha habido un error al buscar la sesión')
+            }
+      },
   async getByTrainer(req, res) {
     try {
       const regex = new RegExp(req.params.name, "i");
