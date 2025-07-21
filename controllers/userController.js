@@ -65,15 +65,23 @@ const userController = {
           res.status(500).send ('Ha habido un problema al desconectar al usuari@')
       }
     },
-    async getById (req,res) {
-      try {
-        const user = await User.findById(req.params._id);
-        res.status(200).send(user)
-      } catch (error) {
-        console.error(error)
-        res.status(500).send('Ha habido un error al buscar al usuari@')
+
+  async getById(req, res) {
+    try {
+      const user = await User.findById(req.params._id).populate({
+        path: 'company',
+      });
+
+      if (!user) {
+        return res.status(404).send({ msg: 'Usuari@ no encontrado' });
       }
-    }, 
+
+      res.status(200).send(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Ha habido un error al buscar al usuari@');
+    }
+  },
     async updateUser (req, res) {
       try {
         const token = req.headers.authorization?.replace('Bearer ', '');

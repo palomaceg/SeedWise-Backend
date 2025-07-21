@@ -32,8 +32,14 @@ const UserSchema = new mongoose.Schema(
             default:'startup'
         },
         company: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            refPath: 'companyModel', // referencia dinámica
             required: [true, 'Por favor, indícanos tu empresa'],
+        },
+        companyModel: {
+            type: String,
+            required: true,
+            enum: ['startup', 'mentoring', 'adminCompany'], //modelo, no el rol
         },
         confirmed: {
         type: Boolean,
