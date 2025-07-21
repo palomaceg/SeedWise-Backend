@@ -55,7 +55,7 @@ const MentoringSessionSchema = new mongoose.Schema(
 
   {
     timestamps: true,
-    collection: "mentoring_sessions",
+    collection: "sessions",
   }
 );
 
