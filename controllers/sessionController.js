@@ -25,7 +25,9 @@ const SessionController = {
   },
   async getById (req,res) {
             try {
-              const session = await Session.findById(req.params.id);
+              const session = await Session.findById(req.params.id)
+              .populate("module_id", "title initialDate finalDate material")
+              .populate("trainer", "name");
               if (!session) {
               return res.status(404).send({ msg: 'Sesión no encontrada con ese ID' });
               }

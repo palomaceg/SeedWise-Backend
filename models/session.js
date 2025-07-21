@@ -11,7 +11,8 @@ const sessionSchema = new mongoose.Schema(
       required: [true, "Por favor introduce una fecha de la sesión"],
     },
     trainer: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "trainer_ids",
     },
     position: {
       type: String,
