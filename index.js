@@ -18,7 +18,8 @@ app.use("/module", require("./routes/moduleRoutes"));
 app.use("/session", require("./routes/sessionRoutes"));
 app.use('/trainers', require('./routes/trainer'));
 app.use('/mentors', require('./routes/mentoring'));
-app.use('/activity', require('./routes/activity'))
+app.use('/activity', require('./routes/activity'));
+app.use('/admin', require('./routes/adminCompany'));
 
 //SERVIDOR
 app.listen(PORT, () => {
