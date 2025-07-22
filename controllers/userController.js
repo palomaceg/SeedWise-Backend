@@ -1,22 +1,61 @@
+const mongoose = require('mongoose');
 require('dotenv').config();
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
 const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken');
+const Startup = require('../models/startup');
+const Mentoring = require('../models/trainer');
 
 const userController = {
      async register(req, res) {
-    try {
-      if (!req.body.password) {
-        return res.status(400).send('La contraseña es obligatoria');
-      }
-      const password = bcrypt.hashSync(req.body.password, 10);
-      const user = await User.create({ ...req.body, password });
-      res.status(201).send({ msg: 'Bienvenid@!', user });
-    } catch (error) {
-      console.log(error);
+  try {
+    if (!req.body.password) {
+      return res.status(400).send('La contraseña es obligatoria');
     }
-  },
+
+    const { company, companyModel } = req.body;
+
+    // Validar que el ID de la empresa sea un ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(company)) {
+      return res.status(400).send('El ID de la empresa no es válido');
+    }
+
+    // Validar que companyModel sea startup o mentoring (u otro que uses)
+    if (!['startup', 'mentoring'].includes(companyModel)) {
+      return res.status(400).send('Modelo de empresa inválido');
+    }
+
+    // Comprobar que la empresa con ese ObjectId existe en el modelo correcto
+    let companyExists;
+    if (companyModel === 'startup') {
+      companyExists = await Startup.findById(company);
+    } else if (companyModel === 'mentoring') {
+      companyExists = await Mentoring.findById(company);
+    }
+
+    if (!companyExists) {
+      return res.status(400).send('La empresa (company) no existe');
+    }
+
+    // Hashear contraseña
+    const password = bcrypt.hashSync(req.body.password, 10);
+
+    // Crear usuario
+    const user = await User.create({ ...req.body, password });
+
+    res.status(201).send({ msg: 'Bienvenid@!', user });
+  } catch (error) {
+    console.log(error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).send({ msg: error.message });
+    }
+    if (error.message) {
+      return res.status(400).send({ msg: error.message });
+    }
+    res.status(500).send('Error en el registro');
+  }
+},
     async getAll(req, res) {
       try {
         const users = await User.find()

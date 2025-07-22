@@ -20,6 +20,9 @@ app.use('/trainers', require('./routes/trainer'));
 app.use('/mentors', require('./routes/mentoring'));
 app.use('/activity', require('./routes/activity'));
 app.use('/admin', require('./routes/adminCompany'));
+app.use('/api/invite', require('./routes/inviteRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/startups', require('./routes/startup'))
 
 //SERVIDOR
 app.listen(PORT, () => {

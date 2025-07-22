@@ -4,8 +4,8 @@ const Startup = require("../models/startup")
 const startupController = {
     async getAll(req, res) {
         try {
-            const startup = await Startup.find()
-            res.status(200).send({startup})
+            const startups = await Startup.find() // Renombramos la variable a 'startups' para mayor claridad
+            res.status(200).send(startups) // 👉 CAMBIO AQUÍ: Envía directamente el array 'startups'
         }catch (error) {
             console.error(error)
             res.status(500).send({msg: 'Error al obtener startups'})
