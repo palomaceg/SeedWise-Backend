@@ -18,7 +18,7 @@ const sendInviteEmail = async ({ to, role, link }) => {
   `;
 
   await transporter.sendMail({
-    from: `"Plataforma" <${process.env.USER}>`,
+    from: `"Seed Startup Program" <${process.env.USER}>`,
     to,
     subject,
     html,
