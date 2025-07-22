@@ -5,13 +5,13 @@ const MentoringSession = require("../models/mentoringSession");
 const Startup = require("../models/startup");
 const Mentoring = require("../models/mentoring");
 const generateMentoringPDF = require("../utils/pdfGenerator");
+const path = require("path");
 
 const mentoringSessionController = {
-  // Crear una nueva sesión
-  // Ahora el mentor puede firmar (dibujar) al crear la sesión
+  //el mentor puede crear una sesión
   async create(req, res) {
     try {
-      const { mentor, startup, date, hour, duration, topic, summary, mentorSignature } = req.body; // Recibe mentorSignature
+      const { mentor, startup, date, hour, duration, topic, summary, mentorSignature } = req.body;
 
       if (!date || !hour) {
         return res.status(400).send({ msg: "Debes enviar tanto fecha como hora" });
@@ -128,11 +128,7 @@ const mentoringSessionController = {
         sessions.map(async (session) => {
           const sessionObject = session.toObject();
 
-          console.log(session.mentor);
-
           const mentoringCompany = await Mentoring.findById(session.mentor);
-
-          console.log(mentoringCompany ? mentoringCompany._id : "NO ENCONTRADO");
 
           let mentorDisplayName = "Mentor Desconocido";
           let mentorCompanyName = "Compañía de Mentoría Desconocida";
@@ -140,9 +136,7 @@ const mentoringSessionController = {
           if (mentoringCompany) {
             mentorDisplayName = mentoringCompany.mentor?.mentorName || "Mentor Desconocido";
             mentorCompanyName = mentoringCompany.company || "Compañía de Mentoría Desconocida";
-            console.log(mentoringCompany.company);
           } else {
-            console.error(session.mentor);
           }
 
           return {
@@ -174,23 +168,51 @@ const mentoringSessionController = {
       const session = await MentoringSession.findById(sessionId);
 
       if (!session) {
-        console.log(`DEBUG (getPDF): Sesión ${sessionId} no encontrada.`);
         return res.status(404).send({ msg: "Sesión no encontrada." });
       }
 
       if (!session.pdfUrl) {
-        console.log(
-          `DEBUG (getPDF): PDF no disponible para sesión ${sessionId}. pdfUrl es nulo/vacío.`
-        );
         return res.status(404).send({
           msg: "PDF no disponible para esta sesión. Asegúrate de que ambas partes hayan firmado.",
         });
       }
 
-      console.log(`DEBUG (getPDF): Redirigiendo a: ${session.pdfUrl}`); // Log de la URL de redirección
-      res.redirect(session.pdfUrl);
+      // Extraer el nombre del archivo del pdfUrl
+      // Esperamos que pdfUrl sea algo como "http://localhost:8080/pdfs/session_ID.pdf"
+      const fileName = session.pdfUrl.split("/").pop(); // Obtiene "session_ID.pdf"
+
+      // Define el directorio raíz para res.sendFile
+      // __dirname es el directorio actual del controlador (ej. .../controllers)
+      // '../pdfs' sube un nivel para llegar a la raíz del proyecto y luego entra en 'pdfs'
+      const rootDir = path.join(__dirname, "../pdfs");
+      const absoluteFilePath = path.join(rootDir, fileName); // Esta es la ruta completa para el logging
+
+      // Usar res.sendFile para enviar el archivo directamente
+      res.sendFile(
+        fileName,
+        {
+          root: rootDir, // ¡Especifica el directorio raíz!
+          headers: {
+            "Content-Type": "application/pdf", // ¡Establece explícitamente el tipo de contenido!
+            "Content-Disposition": `inline; filename="${fileName}"`, // Sugiere que se muestre en línea
+          },
+        },
+        (err) => {
+          if (err) {
+            console.error(`Error al enviar el archivo PDF:`, err); // ¡Loguea el objeto de error completo!
+            // Si el archivo no se encuentra en el servidor (a pesar de que pdfUrl existe)
+            if (err.code === "ENOENT") {
+              return res
+                .status(404)
+                .send({ msg: "Archivo PDF no encontrado en el servidor en la ruta especificada." });
+            }
+            res.status(500).send({ msg: `Error interno al servir el PDF: ${err.message}` });
+          } else {
+          }
+        }
+      );
     } catch (error) {
-      console.error("Error al obtener el PDF de la sesión:", error);
+      console.error("Error general al obtener el PDF de la sesión:", error);
       res.status(500).send({ msg: "Error interno al intentar obtener el PDF." });
     }
   },
@@ -215,7 +237,6 @@ const mentoringSessionController = {
       // Si ambas partes han firmado, cambiar el estado y generar PDF
       if (session.mentorSigned.signed) {
         session.status = "signed";
-        console.log(" (Backend - signByStartup): Ambas partes han firmado. Generando PDF...");
 
         try {
           const mentorCompany = await Mentoring.findById(session.mentor);
@@ -231,18 +252,16 @@ const mentoringSessionController = {
           );
 
           session.pdfUrl = pdfUrl;
-          console.log("DEBUG (Backend - signByStartup): PDF generado y URL asignada:", pdfUrl);
         } catch (pdfError) {
-          console.error("DEBUG (Backend - signByStartup): Error al generar PDF:", pdfError);
+          console.error("Error al generar PDF:", pdfError);
         }
       }
 
       try {
         await session.save();
-        console.log(session._id);
         res.status(200).send({ msg: "Sesión firmada por startup", session });
       } catch (saveError) {
-        console.error("DEBUG (Backend - signByStartup): Error al guardar la sesión:", saveError);
+        console.error("Error al guardar la sesión:", saveError);
         res.status(500).send({ msg: "Error al guardar la sesión después de la firma." });
       }
     } catch (error) {
@@ -286,9 +305,8 @@ const mentoringSessionController = {
           );
 
           session.pdfUrl = pdfUrl;
-          console.log("DEBUG (Backend - signByMentor): PDF generado y URL asignada:", pdfUrl);
         } catch (pdfError) {
-          console.error("DEBUG (Backend - signByMentor): Error al generar PDF:", pdfError);
+          console.error("Error al generar PDF:", pdfError);
         }
       }
 
@@ -296,7 +314,7 @@ const mentoringSessionController = {
         await session.save();
         res.status(200).send({ msg: "Sesión firmada por mentor", session });
       } catch (saveError) {
-        console.error("DEBUG (Backend - signByMentor): Error al guardar la sesión:", saveError);
+        console.error("Error al guardar la sesión:", saveError);
         res.status(500).send({ msg: "Error al guardar la sesión después de la firma." });
       }
     } catch (error) {

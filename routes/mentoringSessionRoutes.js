@@ -8,5 +8,6 @@ router.get("/mentor/:mentorId", controller.getByMentor);
 router.get("/startup/:startupId", controller.getByStartup);
 router.patch("/sign/startup/:id", controller.signByStartup);
 router.patch("/sign/mentor/:id", controller.signByMentor);
+router.get("/pdf/:id", controller.getPDF);
 
 module.exports = router;
