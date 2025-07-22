@@ -80,21 +80,16 @@ const mentoringSessionController = {
   // Obtener todas las sesiones (para admin)
   async getAll(req, res) {
     try {
-      // --- ¡CAMBIO CLAVE AQUÍ! ---
-      // Popula el documento completo de mentor y startup
       let sessions = await MentoringSession.find()
-        .populate("mentor") // Popula el documento completo de la compañía de mentoría
-        .populate("startup") // Popula el documento completo de la compañía de startup
+        .populate("mentor")
+        .populate("startup")
         .sort({ dateTime: -1 });
 
-      // Mapeamos las sesiones para construir los objetos mentor y startup
-      // con la misma estructura que en 'create', 'signByStartup', 'signByMentor'
       const sessionsWithDetails = sessions.map((session) => {
-        const sessionObject = session.toObject(); // Convierte el documento Mongoose a un objeto JS plano
+        const sessionObject = session.toObject();
 
-        // Aseguramos que mentorDetails y startupDetails existan antes de acceder a sus propiedades
-        const mentorCompanyDetails = sessionObject.mentor; // Ya populado
-        const startupCompanyDetails = sessionObject.startup; // Ya populado
+        const mentorCompanyDetails = sessionObject.mentor; //
+        const startupCompanyDetails = sessionObject.startup; //
 
         return {
           ...sessionObject,
