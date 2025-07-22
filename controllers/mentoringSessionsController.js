@@ -3,12 +3,12 @@
 const { Double } = require("mongodb");
 const MentoringSession = require("../models/mentoringSession");
 const Startup = require("../models/startup");
-const Mentoring = require("../models/mentoring");
+const Mentoring = require("../models/mentoring"); // Modelo para la colección 'mentorship'
 const generateMentoringPDF = require("../utils/pdfGenerator");
-const path = require("path");
+const path = require("path"); // Necesario para res.sendFile en getPDF
 
 const mentoringSessionController = {
-  //el mentor puede crear una sesión
+  // El mentor puede crear una sesión
   async create(req, res) {
     try {
       const { mentor, startup, date, hour, duration, topic, summary, mentorSignature } = req.body;
@@ -31,8 +31,8 @@ const mentoringSessionController = {
       }
 
       const newSession = new MentoringSession({
-        mentor,
-        startup,
+        mentor, // Este es el _id de la compañía de mentoría
+        startup, // Este es el _id de la compañía de startup
         date: new Date(date),
         dateTime,
         duration: durationDouble,
@@ -47,7 +47,32 @@ const mentoringSessionController = {
       });
 
       await newSession.save();
-      res.status(201).send({ msg: "Sesión creada correctamente", session: newSession });
+
+      // --- ¡CAMBIO CLAVE AQUÍ! ---
+      // Después de guardar, poblamos la nueva sesión para devolver los detalles completos
+      const populatedSession = await MentoringSession.findById(newSession._id)
+        .populate("startup") // Popula el documento completo de la startup
+        .populate("mentor"); // Popula el documento completo de la compañía de mentoría
+
+      // Construimos el objeto de sesión con detalles completos para el frontend
+      const sessionObject = populatedSession.toObject();
+      const mentorCompanyDetails = await Mentoring.findById(sessionObject.mentor._id);
+      const startupCompanyDetails = await Startup.findById(sessionObject.startup._id);
+
+      const finalSessionResponse = {
+        ...sessionObject,
+        mentor: {
+          _id: mentorCompanyDetails._id,
+          name: mentorCompanyDetails.mentor?.mentorName || "Mentor Desconocido",
+          companyName: mentorCompanyDetails.company || "Compañía de Mentoría Desconocida",
+        },
+        startup: {
+          _id: startupCompanyDetails._id,
+          company: startupCompanyDetails.company || "Startup Desconocida",
+        },
+      };
+
+      res.status(201).send({ msg: "Sesión creada correctamente", session: finalSessionResponse });
     } catch (error) {
       console.error("Error al crear sesión:", error);
       res.status(500).send({ msg: "Error al crear la sesión de mentoría" });
@@ -77,6 +102,7 @@ const mentoringSessionController = {
       const mentoringCompany = await Mentoring.findById(companyId);
 
       if (!mentoringCompany) {
+        console.error("DEBUG (Mentor): Compañía de mentoría no encontrada:", companyId);
         return res.status(404).send({ msg: "Compañía de mentoría no encontrada con ese ID." });
       }
 
@@ -136,7 +162,6 @@ const mentoringSessionController = {
           if (mentoringCompany) {
             mentorDisplayName = mentoringCompany.mentor?.mentorName || "Mentor Desconocido";
             mentorCompanyName = mentoringCompany.company || "Compañía de Mentoría Desconocida";
-          } else {
           }
 
           return {
@@ -161,7 +186,7 @@ const mentoringSessionController = {
     }
   },
 
-  // Obtener y mostrar el PDF de una sesión
+  // Obtener y mostrar el PDF de una sesión (TU VERSIÓN ORIGINAL)
   async getPDF(req, res) {
     try {
       const sessionId = req.params.id;
@@ -178,12 +203,9 @@ const mentoringSessionController = {
       }
 
       // Extraer el nombre del archivo del pdfUrl
-      // Esperamos que pdfUrl sea algo como "http://localhost:8080/pdfs/session_ID.pdf"
       const fileName = session.pdfUrl.split("/").pop(); // Obtiene "session_ID.pdf"
 
       // Define el directorio raíz para res.sendFile
-      // __dirname es el directorio actual del controlador (ej. .../controllers)
-      // '../pdfs' sube un nivel para llegar a la raíz del proyecto y luego entra en 'pdfs'
       const rootDir = path.join(__dirname, "../pdfs");
       const absoluteFilePath = path.join(rootDir, fileName); // Esta es la ruta completa para el logging
 
@@ -199,15 +221,13 @@ const mentoringSessionController = {
         },
         (err) => {
           if (err) {
-            console.error(`Error al enviar el archivo PDF:`, err); // ¡Loguea el objeto de error completo!
-            // Si el archivo no se encuentra en el servidor (a pesar de que pdfUrl existe)
+            console.error(`Error al enviar el archivo PDF:`, err);
             if (err.code === "ENOENT") {
               return res
                 .status(404)
                 .send({ msg: "Archivo PDF no encontrado en el servidor en la ruta especificada." });
             }
             res.status(500).send({ msg: `Error interno al servir el PDF: ${err.message}` });
-          } else {
           }
         }
       );
@@ -257,13 +277,33 @@ const mentoringSessionController = {
         }
       }
 
-      try {
-        await session.save();
-        res.status(200).send({ msg: "Sesión firmada por startup", session });
-      } catch (saveError) {
-        console.error("Error al guardar la sesión:", saveError);
-        res.status(500).send({ msg: "Error al guardar la sesión después de la firma." });
-      }
+      await session.save(); // Guardar la sesión con la firma y/o pdfUrl
+
+      // --- ¡CAMBIO CLAVE AQUÍ! ---
+      // Después de guardar, poblamos la sesión para devolver los detalles completos
+      const populatedSession = await MentoringSession.findById(session._id)
+        .populate("startup")
+        .populate("mentor");
+
+      // Construimos el objeto de sesión con detalles completos para el frontend
+      const sessionObject = populatedSession.toObject();
+      const mentorCompanyDetails = await Mentoring.findById(sessionObject.mentor._id);
+      const startupCompanyDetails = await Startup.findById(sessionObject.startup._id);
+
+      const finalSessionResponse = {
+        ...sessionObject,
+        mentor: {
+          _id: mentorCompanyDetails._id,
+          name: mentorCompanyDetails.mentor?.mentorName || "Mentor Desconocido",
+          companyName: mentorCompanyDetails.company || "Compañía de Mentoría Desconocida",
+        },
+        startup: {
+          _id: startupCompanyDetails._id,
+          company: startupCompanyDetails.company || "Startup Desconocida",
+        },
+      };
+
+      res.status(200).send({ msg: "Sesión firmada por startup", session: finalSessionResponse });
     } catch (error) {
       console.error("Error general al firmar como startup:", error);
       res.status(500).send({ msg: "Error al firmar la sesión" });
@@ -310,13 +350,33 @@ const mentoringSessionController = {
         }
       }
 
-      try {
-        await session.save();
-        res.status(200).send({ msg: "Sesión firmada por mentor", session });
-      } catch (saveError) {
-        console.error("Error al guardar la sesión:", saveError);
-        res.status(500).send({ msg: "Error al guardar la sesión después de la firma." });
-      }
+      await session.save(); // Guardar la sesión con la firma y/o pdfUrl
+
+      // --- ¡CAMBIO CLAVE AQUÍ! ---
+      // Después de guardar, poblamos la sesión para devolver los detalles completos
+      const populatedSession = await MentoringSession.findById(session._id)
+        .populate("startup")
+        .populate("mentor");
+
+      // Construimos el objeto de sesión con detalles completos para el frontend
+      const sessionObject = populatedSession.toObject();
+      const mentorCompanyDetails = await Mentoring.findById(sessionObject.mentor._id);
+      const startupCompanyDetails = await Startup.findById(sessionObject.startup._id);
+
+      const finalSessionResponse = {
+        ...sessionObject,
+        mentor: {
+          _id: mentorCompanyDetails._id,
+          name: mentorCompanyDetails.mentor?.mentorName || "Mentor Desconocido",
+          companyName: mentorCompanyDetails.company || "Compañía de Mentoría Desconocida",
+        },
+        startup: {
+          _id: startupCompanyDetails._id,
+          company: startupCompanyDetails.company || "Startup Desconocida",
+        },
+      };
+
+      res.status(200).send({ msg: "Sesión firmada por mentor", session: finalSessionResponse });
     } catch (error) {
       console.error("Error general al firmar como mentor:", error);
       res.status(500).send({ msg: "Error al firmar la sesión" });
