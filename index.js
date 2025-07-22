@@ -21,6 +21,7 @@ app.use("/session", require("./routes/sessionRoutes"));
 app.use("/trainers", require("./routes/trainer"));
 app.use("/mentors", require("./routes/mentoring"));
 app.use("/activity", require("./routes/activity"));
+app.use("/admin", require("./routes/adminCompany"));
 app.use("/mentoringsessions", require("./routes/mentoringSessionRoutes"));
 
 //SERVIDOR
