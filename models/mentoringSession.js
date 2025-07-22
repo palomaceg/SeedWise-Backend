@@ -36,10 +36,12 @@ const MentoringSessionSchema = new mongoose.Schema(
     mentorSigned: {
       signed: { type: Boolean, default: false },
       timestamp: { type: Date },
+      signatureImage: { type: String },
     },
     startupSigned: {
       signed: { type: Boolean, default: false },
       timestamp: { type: Date },
+      signatureImage: { type: String },
     },
     status: {
       type: String,

@@ -8,9 +8,10 @@ const generateMentoringPDF = require("../utils/pdfGenerator");
 
 const mentoringSessionController = {
   // Crear una nueva sesión
+  // Ahora el mentor puede firmar (dibujar) al crear la sesión
   async create(req, res) {
     try {
-      const { mentor, startup, date, hour, duration, topic, summary } = req.body;
+      const { mentor, startup, date, hour, duration, topic, summary, mentorSignature } = req.body; // Recibe mentorSignature
 
       if (!date || !hour) {
         return res.status(400).send({ msg: "Debes enviar tanto fecha como hora" });
@@ -37,8 +38,12 @@ const mentoringSessionController = {
         duration: durationDouble,
         topic,
         summary,
-        mentorSigned: { signed: true, timestamp: new Date() },
-        status: "pending",
+        mentorSigned: {
+          signed: true, // El mentor firma al crear
+          timestamp: new Date(),
+          signatureImage: mentorSignature, // Guarda la firma dibujada del mentor
+        },
+        status: "pending", // Sigue siendo pendiente hasta que la startup firme
       });
 
       await newSession.save();
@@ -54,7 +59,7 @@ const mentoringSessionController = {
     try {
       const sessions = await MentoringSession.find()
         .populate("mentor", "name email company")
-        .populate("startup", "participant email")
+        .populate("startup", "company contact email")
         .sort({ dateTime: -1 });
 
       res.status(200).send({ sessions });
@@ -123,7 +128,11 @@ const mentoringSessionController = {
         sessions.map(async (session) => {
           const sessionObject = session.toObject();
 
+          console.log(session.mentor);
+
           const mentoringCompany = await Mentoring.findById(session.mentor);
+
+          console.log(mentoringCompany ? mentoringCompany._id : "NO ENCONTRADO");
 
           let mentorDisplayName = "Mentor Desconocido";
           let mentorCompanyName = "Compañía de Mentoría Desconocida";
@@ -131,11 +140,9 @@ const mentoringSessionController = {
           if (mentoringCompany) {
             mentorDisplayName = mentoringCompany.mentor?.mentorName || "Mentor Desconocido";
             mentorCompanyName = mentoringCompany.company || "Compañía de Mentoría Desconocida";
+            console.log(mentoringCompany.company);
           } else {
-            console.error(
-              "DEBUG (Startup): ¡Advertencia! Compañía de mentoría no encontrada para el ID:",
-              session.mentor
-            );
+            console.error(session.mentor);
           }
 
           return {
@@ -160,58 +167,140 @@ const mentoringSessionController = {
     }
   },
 
+  // Obtener y mostrar el PDF de una sesión
+  async getPDF(req, res) {
+    try {
+      const sessionId = req.params.id;
+      const session = await MentoringSession.findById(sessionId);
+
+      if (!session) {
+        console.log(`DEBUG (getPDF): Sesión ${sessionId} no encontrada.`);
+        return res.status(404).send({ msg: "Sesión no encontrada." });
+      }
+
+      if (!session.pdfUrl) {
+        console.log(
+          `DEBUG (getPDF): PDF no disponible para sesión ${sessionId}. pdfUrl es nulo/vacío.`
+        );
+        return res.status(404).send({
+          msg: "PDF no disponible para esta sesión. Asegúrate de que ambas partes hayan firmado.",
+        });
+      }
+
+      console.log(`DEBUG (getPDF): Redirigiendo a: ${session.pdfUrl}`); // Log de la URL de redirección
+      res.redirect(session.pdfUrl);
+    } catch (error) {
+      console.error("Error al obtener el PDF de la sesión:", error);
+      res.status(500).send({ msg: "Error interno al intentar obtener el PDF." });
+    }
+  },
+
   // Firma por la startup
   async signByStartup(req, res) {
     try {
-      const session = await MentoringSession.findById(req.params.id);
-      if (!session) return res.status(404).send({ msg: "Sesión no encontrada" });
+      const sessionId = req.params.id;
+      const { signature } = req.body; // firma dibujada de la startup
+
+      const session = await MentoringSession.findById(sessionId);
+      if (!session) {
+        return res.status(404).send({ msg: "Sesión no encontrada" });
+      }
 
       session.startupSigned = {
         signed: true,
         timestamp: new Date(),
+        signatureImage: signature, // ¡GUARDAMOS LA FIRMA DIBUJADA DE LA STARTUP!
       };
 
+      // Si ambas partes han firmado, cambiar el estado y generar PDF
       if (session.mentorSigned.signed) {
         session.status = "signed";
+        console.log(" (Backend - signByStartup): Ambas partes han firmado. Generando PDF...");
 
-        const mentor = await Mentoring.findById(session.mentor);
-        const startup = await Startup.findById(session.startup);
-        const pdfUrl = await generateMentoringPDF(session, mentor, startup);
-        session.pdfUrl = pdfUrl;
+        try {
+          const mentorCompany = await Mentoring.findById(session.mentor);
+          const startupCompany = await Startup.findById(session.startup);
+
+          // Pasamos AMBAS firmas al generador de PDF
+          const pdfUrl = await generateMentoringPDF(
+            session,
+            mentorCompany,
+            startupCompany,
+            session.mentorSigned.signatureImage, // Firma del mentor (si existe)
+            session.startupSigned.signatureImage // Firma de la startup
+          );
+
+          session.pdfUrl = pdfUrl;
+          console.log("DEBUG (Backend - signByStartup): PDF generado y URL asignada:", pdfUrl);
+        } catch (pdfError) {
+          console.error("DEBUG (Backend - signByStartup): Error al generar PDF:", pdfError);
+        }
       }
 
-      await session.save();
-      res.status(200).send({ msg: "Sesión firmada por startup", session });
+      try {
+        await session.save();
+        console.log(session._id);
+        res.status(200).send({ msg: "Sesión firmada por startup", session });
+      } catch (saveError) {
+        console.error("DEBUG (Backend - signByStartup): Error al guardar la sesión:", saveError);
+        res.status(500).send({ msg: "Error al guardar la sesión después de la firma." });
+      }
     } catch (error) {
-      console.error("Error al firmar como startup:", error);
+      console.error("Error general al firmar como startup:", error);
       res.status(500).send({ msg: "Error al firmar la sesión" });
     }
   },
 
-  // Firma por el mentor
+  // Firma por el mentor (si no se firmó al crear o para refirmar)
   async signByMentor(req, res) {
     try {
-      const session = await MentoringSession.findById(req.params.id);
-      if (!session) return res.status(404).send({ msg: "Sesión no encontrada" });
+      const sessionId = req.params.id;
+      const { signature } = req.body; // Recibimos la firma dibujada del mentor
+
+      const session = await MentoringSession.findById(sessionId);
+      if (!session) {
+        return res.status(404).send({ msg: "Sesión no encontrada" });
+      }
 
       session.mentorSigned = {
         signed: true,
         timestamp: new Date(),
+        signatureImage: signature, // ¡GUARDAMOS LA FIRMA DIBUJADA DEL MENTOR!
       };
 
+      // Si ambas partes han firmado, cambiar el estado y generar PDF
       if (session.startupSigned.signed) {
         session.status = "signed";
 
-        const mentor = await Mentoring.findById(session.mentor);
-        const startup = await Startup.findById(session.startup);
-        const pdfUrl = await generateMentoringPDF(session, mentor, startup);
-        session.pdfUrl = pdfUrl;
+        try {
+          const mentorCompany = await Mentoring.findById(session.mentor);
+          const startupCompany = await Startup.findById(session.startup);
+
+          // Pasamos AMBAS firmas al generador de PDF
+          const pdfUrl = await generateMentoringPDF(
+            session,
+            mentorCompany,
+            startupCompany,
+            session.mentorSigned.signatureImage, // Firma del mentor
+            session.startupSigned.signatureImage // Firma de la startup (si existe)
+          );
+
+          session.pdfUrl = pdfUrl;
+          console.log("DEBUG (Backend - signByMentor): PDF generado y URL asignada:", pdfUrl);
+        } catch (pdfError) {
+          console.error("DEBUG (Backend - signByMentor): Error al generar PDF:", pdfError);
+        }
       }
 
-      await session.save();
-      res.status(200).send({ msg: "Sesión firmada por mentor", session });
+      try {
+        await session.save();
+        res.status(200).send({ msg: "Sesión firmada por mentor", session });
+      } catch (saveError) {
+        console.error("DEBUG (Backend - signByMentor): Error al guardar la sesión:", saveError);
+        res.status(500).send({ msg: "Error al guardar la sesión después de la firma." });
+      }
     } catch (error) {
-      console.error("Error al firmar como mentor:", error);
+      console.error("Error general al firmar como mentor:", error);
       res.status(500).send({ msg: "Error al firmar la sesión" });
     }
   },
