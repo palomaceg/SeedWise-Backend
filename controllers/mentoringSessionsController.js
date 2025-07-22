@@ -39,22 +39,20 @@ const mentoringSessionController = {
         topic,
         summary,
         mentorSigned: {
-          signed: true, // El mentor firma al crear
+          signed: true,
           timestamp: new Date(),
-          signatureImage: mentorSignature, // Guarda la firma dibujada del mentor
+          signatureImage: mentorSignature,
         },
         status: "pending", // Sigue siendo pendiente hasta que la startup firme
       });
 
       await newSession.save();
 
-      // --- ¡CAMBIO CLAVE AQUÍ! ---
       // Después de guardar, poblamos la nueva sesión para devolver los detalles completos
       const populatedSession = await MentoringSession.findById(newSession._id)
         .populate("startup") // Popula el documento completo de la startup
         .populate("mentor"); // Popula el documento completo de la compañía de mentoría
 
-      // Construimos el objeto de sesión con detalles completos para el frontend
       const sessionObject = populatedSession.toObject();
       const mentorCompanyDetails = await Mentoring.findById(sessionObject.mentor._id);
       const startupCompanyDetails = await Startup.findById(sessionObject.startup._id);
@@ -82,12 +80,37 @@ const mentoringSessionController = {
   // Obtener todas las sesiones (para admin)
   async getAll(req, res) {
     try {
-      const sessions = await MentoringSession.find()
-        .populate("mentor", "name email company")
-        .populate("startup", "company contact email")
+      // --- ¡CAMBIO CLAVE AQUÍ! ---
+      // Popula el documento completo de mentor y startup
+      let sessions = await MentoringSession.find()
+        .populate("mentor") // Popula el documento completo de la compañía de mentoría
+        .populate("startup") // Popula el documento completo de la compañía de startup
         .sort({ dateTime: -1 });
 
-      res.status(200).send({ sessions });
+      // Mapeamos las sesiones para construir los objetos mentor y startup
+      // con la misma estructura que en 'create', 'signByStartup', 'signByMentor'
+      const sessionsWithDetails = sessions.map((session) => {
+        const sessionObject = session.toObject(); // Convierte el documento Mongoose a un objeto JS plano
+
+        // Aseguramos que mentorDetails y startupDetails existan antes de acceder a sus propiedades
+        const mentorCompanyDetails = sessionObject.mentor; // Ya populado
+        const startupCompanyDetails = sessionObject.startup; // Ya populado
+
+        return {
+          ...sessionObject,
+          mentor: {
+            _id: mentorCompanyDetails?._id,
+            name: mentorCompanyDetails?.mentor?.mentorName || "Mentor Desconocido",
+            companyName: mentorCompanyDetails?.company || "Compañía de Mentoría Desconocida",
+          },
+          startup: {
+            _id: startupCompanyDetails?._id,
+            company: startupCompanyDetails?.company || "Startup Desconocida",
+          },
+        };
+      });
+
+      res.status(200).send({ sessions: sessionsWithDetails });
     } catch (error) {
       console.error("Error al obtener sesiones:", error);
       res.status(500).send({ msg: "Error al obtener las sesiones" });
