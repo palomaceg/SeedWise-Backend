@@ -1,4 +1,3 @@
-// utils/pdfGenerator.js
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
@@ -23,20 +22,38 @@ async function generateMentoringPDF(
   const writeStream = fs.createWriteStream(filePath);
   doc.pipe(writeStream);
 
-  doc.fontSize(25).text("Informe de Sesión de Mentoría", { align: "center" });
+  const headerImagePath = path.join(__dirname, "..", "assets", "cabecero.png");
+
+  doc.image(headerImagePath, 0, 0, {
+    width: doc.page.width, // ocupa todo el ancho
+    height: 78, // o el alto que tenga tu cabecera
+  });
+
+  doc.moveDown(6);
+
+  doc.fontSize(24).font("Helvetica").text("Informe de Sesión de Mentoría", { align: "center" });
+
   doc.moveDown();
-  doc.fontSize(12).text(`Mentoría: ${mentorCompany.company}`);
+
+  doc.fontSize(14).text(`Mentor: ${mentorCompany.company}`);
+  doc.moveDown();
   doc.text(`Mentor: ${mentorCompany.mentor?.mentorName}`);
+  doc.moveDown();
   doc.text(`Startup: ${startupCompany.company}`);
+  doc.moveDown();
   doc.text(`Fecha: ${new Date(session.dateTime).toLocaleDateString()}`);
+  doc.moveDown();
   doc.text(`Duración: ${session.duration} horas`);
+  doc.moveDown();
   doc.text(`Tema: ${session.topic}`);
+  doc.moveDown();
   doc.text(`Resumen: ${session.summary || "No disponible"}`);
+
   doc.moveDown();
 
   // --- Firmas Dibujadas ---
-  doc.fontSize(10).text("Firmas:");
-  doc.moveDown(0.5);
+  doc.fontSize(12).text("Firmas:");
+  doc.moveDown(1.5);
 
   // Firma del Mentor
   doc.text("Firma del Mentor:");
@@ -62,7 +79,7 @@ async function generateMentoringPDF(
     try {
       doc.image(startupSignatureImage, {
         fit: [150, 75],
-        align: "left",
+        align: "right",
         valign: "top",
       });
     } catch (imageError) {
